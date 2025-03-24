@@ -1,47 +1,68 @@
-import tkinter as tk
-from tkinter import ttk
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# Create the main window
-root = tk.Tk()
-root.title("Tkinter Layout")
-root.geometry("800x600")  # Set the size of the window
+# Load the Excel file
+def load_data(file_path):
+    df = pd.read_excel(file_path)
+    df['Year'] = pd.to_datetime(df['Year'], errors='coerce').dt.year
+    df['WAR'] = pd.to_numeric(df['WAR'], errors='coerce')
+    return df
 
-# Create a frame for the top container (similar to the "container" div in HTML)
-top_frame = tk.Frame(root)
-top_frame.pack(fill="both", expand=True, padx=10, pady=10)
+# Extract player name from the URL
+def extract_player_name(url):
+    return url.split('/')[4]
 
-# Square with Image (use a label for image)
-image_label = tk.Label(top_frame, text="Person Image", bg="lightgray", width=30, height=15)
-image_label.grid(row=0, column=0, padx=10, pady=10)
+# Display available players and ask for selection
+def select_player(players):
+    print("Available players:")
+    for idx, player in enumerate(players, start=1):
+        print(f"{idx}. {player}")
+    
+    choice = int(input("\nEnter the number corresponding to the player (or 0 to exit): "))
+    
+    if choice == 0:
+        return None  # Exit the loop if the user chooses 0
+    
+    selected_player = players[choice - 1]
+    return selected_player
 
-# Side container (containing dropdown and blue box)
-side_frame = tk.Frame(top_frame)
-side_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+# Plot the WAR over time for the selected player
+def plot_war(player_name, df):
+    player_data = df[df['Player'] == player_name]
+    
+    if player_data.empty:
+        print(f"No data found for player: {player_name}")
+        return
 
-# Dropdown Menu
-dropdown_label = tk.Label(side_frame, text="Dropdown Menu", bg="lightgreen", width=20, height=6)
-dropdown_label.pack(padx=10, pady=10)
+    # Plot the data
+    plt.figure(figsize=(10, 6))
+    plt.plot(player_data['Year'], player_data['WAR'], marker='o', linestyle='-', color='b')
+    plt.title(f"WAR Over Time for {player_name}")
+    plt.xlabel("Year")
+    plt.ylabel("WAR")
+    plt.grid(True)
+    plt.show()
 
-dropdown = ttk.Combobox(side_frame, values=["Option 1", "Option 2", "Option 3"])
-dropdown.pack(padx=10, pady=10)
+# File path for the Excel file
+file_path = r"C:\Users\dmaph\Documents\GitHub\MLB\scraped_war_data.xlsx"
 
-# Blue box
-blue_box = tk.Label(side_frame, text="Content or Graph Here", bg="lightblue", width=20, height=6)
-blue_box.pack(padx=10, pady=10)
+# Load the data
+df = load_data(file_path)
 
-# Create a frame for the bottom container (graph section)
-bottom_frame = tk.Frame(root)
-bottom_frame.pack(fill="both", expand=True, padx=10, pady=10)
+# Extract player names and add as a new column
+df['Player'] = df['URL'].apply(extract_player_name)
 
-# Bottom boxes with graphs
-box1 = tk.Label(bottom_frame, text="Graph 1", bg="orange", width=30, height=5)
-box1.grid(row=0, column=0, padx=10, pady=10)
+# Get unique player names for selection
+players = df['Player'].unique()
 
-box2 = tk.Label(bottom_frame, text="Graph 2", bg="purple", width=30, height=5)
-box2.grid(row=1, column=0, padx=10, pady=10)
-
-box3 = tk.Label(bottom_frame, text="Graph 3", bg="cyan", width=30, height=5)
-box3.grid(row=2, column=0, padx=10, pady=10)
-
-# Start the Tkinter event loop
-root.mainloop()
+# Start an interactive loop to select players
+while True:
+    # Let the user select a player
+    selected_player = select_player(players)
+    
+    if selected_player is None:
+        print("Exiting the program.")
+        break
+    
+    # Plot the WAR over time for the selected player
+    plot_war(selected_player, df)
